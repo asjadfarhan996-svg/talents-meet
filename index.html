@@ -60,10 +60,13 @@ button.card:active{background:#243331}
 .id{font-size:12px;color:var(--muted);margin-top:3px}
 .chip{background:var(--chip);color:var(--chip-ink);font-size:12px;padding:3px 10px;border-radius:20px;white-space:nowrap}
 .done{font-size:11px;color:var(--ok);margin-top:3px}
-.tabs{display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-.tabs button{flex:1;background:none;border:0;color:var(--muted);padding:10px 0 12px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px}
-.tabs button.on{color:var(--chip)}
-.tabs svg{width:20px;height:20px}
+.tabs{display:flex;gap:4px;margin:6px 12px calc(12px + env(safe-area-inset-bottom,0px));padding:6px;
+  background:rgba(27,38,36,.92);border:1px solid var(--line);border-radius:999px;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.tabs button{flex:1;background:none;border:0;border-radius:999px;color:#c9d3d1;padding:8px 0 7px;font-size:13px;font-weight:500;
+  display:flex;flex-direction:column;align-items:center;gap:3px;transition:background .18s,color .18s}
+.tabs button.on{color:var(--chip);background:rgba(242,201,138,.14)}
+.tabs svg{width:24px;height:24px}
 .res{display:block}
 .res .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:5px;gap:12px}
 .res .row span:last-child{color:#c5d0ce;text-align:right}
