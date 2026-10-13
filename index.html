@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Talents Meet</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#141c1a; --panel:#1b2624; --card:#1e2a28; --line:#2c3a37;
+  --text:#e9eeec; --muted:#8b9a96; --teal:#174a4f; --teal2:#0f3a3f;
+  --orange:#e08b2b; --orange-ink:#1a1206; --chip:#f2c98a; --chip-ink:#3a2508;
+  --ok:#5fbf8a; --warn:#e0b04b; --bad:#e07a6b;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root[data-theme="light"]{--bg:#141c1a}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+.serif{font-family:"Noto Serif",Georgia,serif}
+button{font:inherit;cursor:pointer}
+.screen{display:none;min-height:100vh}
+.screen.on{display:flex}
+/* splash */
+#splash{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;
+  background:radial-gradient(120% 80% at 50% 0%,#1d5a5f 0%,#123a3e 45%,#0e2629 100%)}
+.kicker{font-size:12px;letter-spacing:.18em;color:#b9cfcc}
+.portal{font-family:"Noto Serif",Georgia,serif;color:#e9b46a;font-size:19px;margin-top:6px}
+.logo-ring{width:190px;height:190px;border-radius:50%;margin:34px 0 26px;padding:6px;
+  background:conic-gradient(from 200deg,var(--orange) 0 28%,transparent 28% 100%);position:relative}
+.logo-ring::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(233,180,106,.55)}
+.logo-ring img{width:100%;height:100%;border-radius:50%;display:block;background:#fff;object-fit:cover;box-shadow:0 0 0 4px #123a3e}
+#splash h1{font-family:"Noto Serif",Georgia,serif;font-size:36px;margin:0 0 10px}
+.motto{font-family:"Noto Serif",Georgia,serif;font-style:italic;color:#d6e2e0;margin:0 0 30px}
+.btn{border:0;border-radius:8px;padding:13px 22px;font-weight:700;background:var(--orange);color:var(--orange-ink)}
+.btn:active{filter:brightness(.92)}
+.btn.ghost{background:transparent;border:1px solid #4b6a66;color:#9fbab6;font-weight:500}
+.copy{margin-top:40px;font-size:12px;color:#9fb5b2}
+/* login */
+#login{flex-direction:column;justify-content:center;padding:24px 22px;max-width:480px;margin:0 auto}
+#login h2{font-family:"Noto Serif",Georgia,serif;text-align:center;font-size:28px;margin:0 0 6px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 26px}
+label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+input,select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:13px 14px;font:inherit;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 2px rgba(224,139,43,.25)}
+textarea{min-height:80px;resize:vertical}
+.err{color:var(--bad);font-size:14px;min-height:20px;margin-top:10px}
+.full{width:100%;margin-top:22px}
+.center{text-align:center;margin-top:16px}
+/* app */
+#app{flex-direction:column;height:100vh;height:100dvh}
+.top{background:var(--teal);display:flex;align-items:center;justify-content:space-between;padding:14px 16px;position:sticky;top:0;z-index:2}
+.top h3{margin:0;font-family:"Noto Serif",Georgia,serif;font-weight:500;font-size:20px}
+.link{background:none;border:0;color:#e9b46a;font-size:14px;padding:4px}
+.main{flex:1;overflow-y:auto;padding:12px 14px 24px;max-width:680px;width:100%;margin:0 auto}
+.group{color:var(--muted);font-size:14px;margin:16px 2px 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;color:inherit}
+button.card:active{background:#243331}
+.nm{font-family:"Noto Serif",Georgia,serif;font-size:16px}
+.id{font-size:12px;color:var(--muted);margin-top:3px}
+.chip{background:var(--chip);color:var(--chip-ink);font-size:12px;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.done{font-size:11px;color:var(--ok);margin-top:3px}
+.tabs{display:flex;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs button{flex:1;background:none;border:0;color:var(--muted);padding:10px 0 12px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button.on{color:var(--chip)}
+.tabs svg{width:20px;height:20px}
+.res{display:block}
+.res .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:5px;gap:12px}
+.res .row span:last-child{color:#c5d0ce;text-align:right}
+.res .head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+.empty{color:var(--muted);text-align:center;padding:40px 10px;font-size:14px}
+.note{font-size:12px;color:var(--warn);background:#2a2516;border:1px solid #4a3f20;border-radius:8px;padding:8px 10px;margin:8px 0}
+/* sheet */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.on{display:flex}
+.sheet .box{background:var(--bg);border-top:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:18px 18px calc(22px + env(safe-area-inset-bottom,0px))}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:20px;padding:8px 14px;font-size:14px}
+.opt.on{background:var(--orange);color:var(--orange-ink);border-color:var(--orange);font-weight:700}
+.del{background:none;border:0;color:var(--bad);font-size:12px;padding:6px 0 0}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ok);color:#06210f;padding:10px 18px;border-radius:20px;font-weight:700;display:none;z-index:20}
+@media (prefers-reduced-motion:no-preference){.sheet .box{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}}
+.scanrow{display:flex;gap:8px;align-items:stretch;margin-top:4px}
+.scanrow input{flex:1;font-family:Roboto,monospace;letter-spacing:.02em}
+.cam{background:var(--orange);border:0;border-radius:8px;width:54px;display:flex;align-items:center;justify-content:center;color:var(--orange-ink)}
+.cam svg{width:26px;height:26px}
+.sugg{margin-top:6px}
+.sugg button{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:9px 12px;margin-bottom:6px;font-size:14px}
+.sugg small{color:var(--muted);margin-left:6px}
+input[readonly]{color:var(--muted);background:#18211f}
+.req{color:var(--orange)}
+.formcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 14px 16px;margin-top:14px}
+.btnrow{display:flex;gap:10px;margin-top:20px}.btnrow .btn{flex:1}
+#scanner{position:fixed;inset:0;background:#000;z-index:30;display:none;flex-direction:column}
+#scanner.on{display:flex}
+#scanner video{flex:1;width:100%;object-fit:cover;min-height:0}
+.frame{position:absolute;left:10%;right:10%;top:35%;height:22%;border:3px solid var(--orange);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:none}
+.scanbar{padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));background:#000;text-align:center}
+.scanmsg{color:#ddd;font-size:14px;margin-bottom:12px;min-height:20px}
+.entries{display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px}
+.danger{background:var(--bad);color:#2a0b06}
+.who{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 4px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+</head>
+<body>
+
+<section id="splash" class="screen on">
+  <div class="kicker">CULTURAL SPHERE</div>
+  <div class="portal">Official Portal</div>
+  <div class="logo-ring"><img src="data:image/webp;base64,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" alt="Talents Meet logo"></div>
+  <h1>Talents Meet</h1>
+  <p class="motto">"Do your best and beyond"</p>
+  <div class="entries">
+    <button class="btn" data-role="admin">Admin Entry</button>
+    <button class="btn" data-role="staff">Staff Entry</button>
+    <button class="btn" data-role="user">User Entry</button>
+  </div>
+  <div class="copy">© all rights reserved to SADA</div>
+</section>
+
+<section id="login" class="screen">
+  <h2>Sign in</h2><p class="sub" id="roleName" style="text-align:center;color:#e9b46a;margin:0 0 4px"></p>
+  <p class="sub" id="roleHint">Only recognised evaluators can enter student records.</p>
+  <label for="u">Username</label><input id="u" autocomplete="username" autocapitalize="off">
+  <label for="p">Password</label><input id="p" type="password" autocomplete="current-password">
+  <div class="err" id="lerr"></div>
+  <button class="btn full" id="doLogin">Log in</button>
+  <div class="center"><button class="btn ghost" id="back">Back</button></div>
+</section>
+
+<section id="app" class="screen">
+  <div class="top"><h3 id="ttl">Students</h3><button class="link" id="logout">Log out</button></div>
+  <div class="main" id="main"></div>
+  <nav class="tabs">
+    <button data-t="students" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Students</button>
+    <button data-t="evaluate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Evaluate</button>
+    <button data-t="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg>Results</button>
+    <button data-t="admin" id="adminTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Admin</button>
+  </nav>
+</section>
+
+<div class="sheet" id="sheet"><div class="box" id="sbox"></div></div>
+<div class="toast" id="toast">Saved</div>
+<div id="scanner"><video id="vid" playsinline muted></video><div class="frame"></div>
+<div class="scanbar"><div class="scanmsg" id="smsg">Point the camera at the barcode</div><button class="btn ghost" id="scClose" style="color:#fff;border-color:#888">Close</button></div></div>
+
+<script>
+const PROGRAMS=["Supplication","Qira'th","Welcome Speech","Presidency","Inauguration","Report","Malayalam Speech","Spiritual Talk","Arabic Speech","English Speech","Urdu Speech","Song","Zero Hour","Other"];
+const TIMES=["Finished","Not Finished","Over Time"];
+const JUDGES=["Very Poor","Poor","Average","Amazing","Just Awesome"];
+const VALS=["1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","9/10","10/10"];
+const CLASSES=["Degree 1","Plus Two","Plus One"];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let tab="students",q="",evals=[],loaded=false,STUDENTS=[],role="",me=null,cred=null,pendingRole="",evalId="",evalStudent=null,poll=null;
+
+const API_URL="https://script.google.com/macros/s/AKfycbzmEQWkmiGs-QqkJM1qVEFcWyxTO0jERK_hrHfdNZ1qOkKFJ31Bg_sf7zdtSlJ9IGRaJw/exec";
+async function api(fn,...args){
+  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args})});
+  const j=await r.json();
+  if(!j.ok)throw new Error(j.error||"Error");
+  return j.data;
+}
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));}
+function saveSess(){try{localStorage.setItem("tm_sess",JSON.stringify(cred))}catch(e){}}
+function clearSess(){try{localStorage.removeItem("tm_sess")}catch(e){}}
+function loadSess(){try{return JSON.parse(localStorage.getItem("tm_sess")||"null")}catch(e){return null}}
+function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",1600)}
+
+async function refresh(){
+  try{evals=await api("getResults",cred);loaded=true;if($("#app").classList.contains("on")&&tab!=="evaluate")render();}catch(e){}
+}
+function enterApp(r){
+  role=r.role;me=r.me;STUDENTS=r.students||[];
+  const isUser=role==="user";
+  $(".tabs").style.display=isUser?"none":"flex";
+  $("#adminTab").style.display=role==="admin"?"flex":"none";
+  tab=isUser?"mine":"students";q="";loaded=false;evals=[];
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t===tab));
+  show("app");render();refresh();
+  clearInterval(poll);poll=setInterval(refresh,20000);
+}
+document.querySelectorAll("[data-role]").forEach(b=>b.onclick=async()=>{
+  const s=loadSess();
+  if(s&&s.role===b.dataset.role){try{cred=s;enterApp(await api("login",s));return}catch(e){clearSess()}}
+  pendingRole=b.dataset.role;
+  $("#roleName").textContent={admin:"Admin Entry",staff:"Staff Entry",user:"User Entry"}[pendingRole];
+  $("#roleHint").textContent=pendingRole==="user"?"Username is your number in class. Password is your full name.":"Only recognised evaluators can enter student records.";
+  $("#u").value="";$("#p").value="";$("#lerr").textContent="";
+  $("#u").inputMode=pendingRole==="user"?"numeric":"text";
+  show("login");
+});
+$("#back").onclick=()=>show("splash");
+$("#doLogin").onclick=async()=>{
+  const c={role:pendingRole,u:$("#u").value.trim(),p:$("#p").value};
+  const btn=$("#doLogin");btn.disabled=true;btn.textContent="Checking…";$("#lerr").textContent="";
+  try{const r=await api("login",c);cred=c;saveSess();$("#p").value="";enterApp(r);}
+  catch(e){$("#lerr").textContent="Wrong username or password.";}
+  btn.disabled=false;btn.textContent="Log in";
+};
+$("#p").addEventListener("keydown",e=>{if(e.key==="Enter")$("#doLogin").click()});
+$("#logout").onclick=()=>{clearInterval(poll);role="";me=null;cred=null;clearSess();evalId="";evalStudent=null;show("splash");};
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;q="";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render();$("#main").scrollTop=0;if(tab!=="evaluate")refresh();});
+
+function resultCard(e,canDel){
+  return `<div class="card res"><div class="head"><div><div class="nm">${esc(e.name)}</div><div class="id">${esc(e.sid)} · ${esc(e.cls)}</div></div><span class="chip">${esc(e.valuation)}</span></div>
+    <div class="row"><span>Program</span><span>${esc(e.program)}</span></div>
+    <div class="row"><span>Time management</span><span>${esc(e.time)}</span></div>
+    <div class="row"><span>Judgement</span><span>${esc(e.judgement)}</span></div>
+    <div class="row"><span>Valuation</span><span>${esc(e.valuation)}</span></div>
+    <div class="row"><span>Note</span><span>${esc(e.note||"-")}</span></div>
+    <div class="row"><span>Recorded</span><span>${new Date(e.at).toLocaleString()}</span></div>
+    ${canDel?`<button class="del" data-del="${esc(e._id)}">Delete</button>`:""}</div>`;
+}
+function searchBox(ph){return `<input id="q" placeholder="${ph}" value="${esc(q)}" style="margin-top:4px">`}
+function match(s){const t=q.trim().toLowerCase();return !t||s.name.toLowerCase().includes(t)||s.id.toLowerCase().includes(t)}
+function bindSearch(){const i=$("#q");if(!i)return;i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const j=$("#q");j.focus();j.setSelectionRange(p,p)}}
+function studentList(){
+  let h="";
+  for(const c of CLASSES){
+    const list=STUDENTS.filter(s=>s.cls===c&&match(s));
+    if(!list.length)continue;
+    h+=`<div class="group">${c} (${list.length})</div>`+list.map(s=>`<div class="card"><div><div class="nm">${esc(s.name)}</div><div class="id">${s.id}</div></div><span class="chip">${c}</span></div>`).join("");
+  }
+  return h||`<div class="empty">No student found.</div>`;
+}
+function render(){
+  const m=$("#main");
+  if(tab==="mine"){
+    $("#ttl").textContent="My Result";
+    const mine=evals.slice().sort((a,b)=>b.at-a.at);
+    m.innerHTML=`<div class="who"><div class="nm" style="font-size:19px">${esc(me.name)}</div><div class="id">${me.id} · ${me.cls}</div></div>`+
+      (!loaded?`<div class="empty">Loading…</div>`:mine.length?mine.map(e=>resultCard(e,false)).join(""):`<div class="empty">No result yet.</div>`);
+    return;
+  }
+  if(tab==="admin"&&role==="admin"){
+    $("#ttl").textContent="Admin";
+    m.innerHTML=`<div class="who"><div class="nm">Saved results</div><div class="id" style="font-size:15px;margin-top:6px">${loaded?evals.length:"…"}</div></div>
+      <div class="who"><div class="nm">Reset data</div><p class="sub" style="margin:6px 0 12px">Deletes every saved result. Student list is not changed.</p>
+      <button class="btn danger full" id="resetBtn" style="margin-top:0">Reset all results</button></div>`;
+    $("#resetBtn").onclick=resetAll;return;
+  }
+  if(tab==="students"){$("#ttl").textContent="Students";m.innerHTML=searchBox("Search by name or ID")+studentList();}
+  else if(tab==="evaluate"){$("#ttl").textContent="Evaluate Program";m.innerHTML=evalView();bindEval();return;}
+  else{$("#ttl").textContent="Check Result";
+    const t=q.trim().toLowerCase();
+    const list=evals.filter(e=>!t||e.name.toLowerCase().includes(t)||e.sid.toLowerCase().includes(t)||e.program.toLowerCase().includes(t)).sort((a,b)=>b.at-a.at);
+    m.innerHTML=searchBox("Search result by name or ID")+(!loaded?`<div class="empty">Loading…</div>`:list.length?list.map(e=>resultCard(e,role==="admin")).join(""):`<div class="empty">No results yet.</div>`);
+    m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delEval(b.dataset.del));
+  }
+  bindSearch();
+}
+async function delEval(id){
+  if(!confirm("Delete this result?"))return;
+  try{await api("deleteResult",cred,id);toast("Deleted");refresh();}catch(e){alert("Could not delete.")}
+}
+async function resetAll(){
+  if(!confirm("Delete ALL results? This cannot be undone."))return;
+  if(prompt("Type RESET to confirm")!=="RESET")return;
+  const b=$("#resetBtn");b.disabled=true;b.textContent="Deleting…";
+  try{await api("resetAll",cred);evals=[];toast("All results deleted");}catch(e){alert("Could not reset.")}
+  render();
+}
+
+function sel(id,arr){return `<select id="${id}"><option value="">Select</option>${arr.map(v=>`<option>${esc(v)}</option>`).join("")}</select>`}
+function findStudent(v){v=String(v||"").trim().toUpperCase();if(!v)return null;
+  const ex=STUDENTS.find(s=>s.id===v);if(ex)return ex;
+  const m=v.match(/^[A-Z]{6,}(\d{5,})$/);if(!m)return null;
+  const n=parseInt(m[1],10);return STUDENTS.find(s=>parseInt(s.id.replace(/\D/g,""),10)===n)||null}
+function evalView(){
+  const camIcon=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+  return `<label for="eid" style="margin-top:6px">Student ID</label>
+  <div class="scanrow"><input id="eid" placeholder="Scan barcode or type ID" value="${esc(evalId)}" autocapitalize="characters" autocomplete="off"><button class="cam" id="camBtn" aria-label="Scan barcode">${camIcon}</button></div>
+  <div class="err" id="iderr"></div><div class="sugg" id="sugg"></div>
+  ${evalStudent?`<div class="formcard">
+    <label for="fprog">Performed Program <span class="req">*</span></label>${sel("fprog",PROGRAMS)}
+    <label for="ftime">Time Management <span class="req">*</span></label>${sel("ftime",TIMES)}
+    <label for="fjudge">Judgement <span class="req">*</span></label>${sel("fjudge",JUDGES)}
+    <label for="fval">Valuation <span class="req">*</span></label>${sel("fval",VALS)}
+    <label for="fnote">Additional Note</label><textarea id="fnote" placeholder="Optional"></textarea>
+    <label for="fname">Student Name</label><input id="fname" readonly value="${esc(evalStudent.name)}">
+    <div class="err" id="ferr"></div>
+    <div class="btnrow"><button class="btn ghost" id="fcancel">Cancel</button><button class="btn" id="fsave">Save</button></div>
+  </div>`:`<div class="empty">Tap the camera and scan the student's barcode.</div>`}`;
+}
+function setStudent(v){
+  evalId=String(v||"").trim().toUpperCase();evalStudent=findStudent(evalId);render();
+  if(!evalStudent&&evalId)$("#iderr").textContent="No student with this ID: "+evalId;
+}
+function bindEval(){
+  const inp=$("#eid");
+  inp.oninput=()=>{
+    const v=inp.value.trim().toUpperCase();evalId=inp.value;
+    if(findStudent(v)){setStudent(v);return}
+    if(evalStudent){evalStudent=null;const p=inp.selectionStart;render();const j=$("#eid");j.focus();j.setSelectionRange(p,p);}
+    const sg=$("#sugg");const l=v.toLowerCase();
+    const list=l.length>=2?STUDENTS.filter(s=>s.id.toLowerCase().includes(l)||s.name.toLowerCase().includes(l)).slice(0,5):[];
+    sg.innerHTML=list.map(s=>`<button data-id="${s.id}">${esc(s.id)}<small>${esc(s.name)}</small></button>`).join("");
+    sg.querySelectorAll("button").forEach(b=>b.onclick=()=>setStudent(b.dataset.id));
+  };
+  $("#camBtn").onclick=startScan;
+  if(!evalStudent)return;
+  $("#fcancel").onclick=()=>{evalId="";evalStudent=null;render()};
+  $("#fsave").onclick=async()=>{
+    const d={sid:evalStudent.id,program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
+    const miss=[!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
+    if(miss.length){$("#ferr").textContent="Please fill: "+miss.join(", ");return}
+    const btn=$("#fsave");btn.disabled=true;btn.textContent="Saving…";
+    try{await api("saveResult",cred,d);evalId="";evalStudent=null;render();toast("Saved");refresh();}
+    catch(e){btn.disabled=false;btn.textContent="Save";$("#ferr").textContent="Could not save. Check the internet and try again.";}
+  };
+}
+let scanStream=null,scanTimer=null,zxReader=null;
+async function startScan(){
+  const sc=$("#scanner"),v=$("#vid"),msg=$("#smsg");
+  msg.textContent="Point the camera at the barcode";sc.classList.add("on");
+  const done=txt=>{stopScan();setStudent(txt);};
+  try{
+    if("BarcodeDetector" in window){
+      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+      v.srcObject=scanStream;await v.play();
+      const det=new BarcodeDetector();
+      const tick=async()=>{if(!scanStream)return;try{const r=await det.detect(v);if(r&&r.length){done(r[0].rawValue);return}}catch(e){}scanTimer=setTimeout(tick,250)};
+      tick();
+    }else if(window.ZXing){
+      zxReader=new ZXing.BrowserMultiFormatReader();
+      await zxReader.decodeFromConstraints({video:{facingMode:"environment"}},v,res=>{if(res)done(res.getText())});
+    }else msg.textContent="Scanner could not load. Type the ID instead.";
+  }catch(e){msg.textContent=(e&&e.name==="NotAllowedError")?"Camera permission was denied. Allow camera access, or type the ID.":"Camera could not start. Type the ID instead.";}
+}
+function stopScan(){
+  clearTimeout(scanTimer);try{zxReader&&zxReader.reset()}catch(e){}zxReader=null;
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null}
+  const v=$("#vid");try{v.pause();v.srcObject=null}catch(e){}
+  $("#scanner").classList.remove("on");
+}
+$("#scClose").onclick=stopScan;
+</script>
+</body>
+</html>
