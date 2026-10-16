@@ -122,6 +122,13 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
 .scanmsg{color:#ddd;font-size:14px;margin-bottom:12px;min-height:20px}
 .entries{display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px}
 .danger{background:var(--bad);color:var(--bad-ink)}
+.meetbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+.mstep{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--navy);font-size:26px;font-weight:700;line-height:1}
+.mrow{cursor:pointer}
+.mrow.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
+.mrow.ok .chip{background:var(--ok);color:var(--ok-ink)}
+.mprog{height:8px;border-radius:999px;background:color-mix(in srgb,var(--teal) 15%,transparent);margin-top:10px;overflow:hidden}
+.mprog span{display:block;height:100%;background:var(--teal);border-radius:999px}
 .who{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -157,6 +164,7 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
   <div class="main" id="main"></div>
   <nav class="tabs">
     <button data-t="students" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Students</button>
+    <button data-t="meet" id="meetTab" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/></svg>Meet</button>
     <button data-t="evaluate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg>Evaluate</button>
     <button data-t="results"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg>Results</button>
     <button data-t="admin" id="adminTab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Admin</button>
@@ -199,7 +207,9 @@ function enterApp(r){
   const isUser=role==="user";
   $(".tabs").style.display=isUser?"none":"flex";
   $("#adminTab").style.display=role==="admin"?"flex":"none";
-  tab=isUser?"mine":"students";q="";loaded=false;evals=[];
+  $("#meetTab").style.display=(role==="staff"||role==="admin")?"flex":"none";
+  document.querySelector('.tabs [data-t="students"]').style.display=role==="staff"?"none":"flex";
+  tab=isUser?"mine":(role==="staff"?"meet":"students");q="";loaded=false;evals=[];
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t===tab));
   show("app");render();refresh();
   clearInterval(poll);poll=setInterval(refresh,20000);
@@ -224,7 +234,7 @@ $("#doLogin").onclick=async()=>{
 };
 $("#p").addEventListener("keydown",e=>{if(e.key==="Enter")$("#doLogin").click()});
 $("#logout").onclick=()=>{clearInterval(poll);role="";me=null;cred=null;clearSess();evalId="";evalStudent=null;show("splash");};
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;q="";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render();$("#main").scrollTop=0;if(tab!=="evaluate")refresh();});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{fromMeet=null;tab=b.dataset.t;q="";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render();$("#main").scrollTop=0;if(tab!=="evaluate")refresh();});
 
 function resultCard(e,canDel){
   return `<div class="card res"><div class="head"><div><div class="nm">${esc(e.name)}</div><div class="id">${esc(e.sid)} · ${esc(e.cls)}</div></div><span class="chip">${esc(e.valuation)}</span></div>
@@ -264,6 +274,7 @@ function render(){
       <button class="btn danger full" id="resetBtn" style="margin-top:0">Reset all results</button></div>`;
     $("#resetBtn").onclick=resetAll;return;
   }
+  if(tab==="meet"){$("#ttl").textContent="Meet Programme";m.innerHTML=meetView();bindMeet();return;}
   if(tab==="students"){$("#ttl").textContent="Students";m.innerHTML=searchBox("Search by name or ID")+studentList();}
   else if(tab==="evaluate"){$("#ttl").textContent="Evaluate Program";m.innerHTML=evalView();bindEval();return;}
   else{$("#ttl").textContent="Check Result";
@@ -285,6 +296,55 @@ async function resetAll(){
   try{await api("resetAll",cred);evals=[];toast("All results deleted");}catch(e){alert("Could not reset.")}
   render();
 }
+
+
+/* ---------- Staff: meet programme ---------- */
+let meetNo=1,meetRows=[],fromMeet=null;
+try{meetNo=Math.max(1,parseInt(localStorage.getItem("tm_meet")||"1",10)||1)}catch(e){}
+const PMAP={"Supplication":"Supplication","Qira'at":"Qira'th","Welcome":"Welcome Speech","Presidency":"Presidency","Report":"Report",
+  "Sermon":"Spiritual Talk","Malayalam Speech 1":"Malayalam Speech","Malayalam Speech 2":"Malayalam Speech","English Speech 1":"English Speech",
+  "English Speech 2":"English Speech","Arabic Speech":"Arabic Speech","Urdu Speech":"Urdu Speech","Song 1":"Song","Song 2":"Song","Song 3":"Song"};
+const normN=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"");
+function byName(name){
+  const n=normN(name);let hit=STUDENTS.filter(s=>normN(s.name)===n);
+  if(hit.length===1)return hit[0];
+  const toks=String(name).toUpperCase().split(/[^A-Z]+/).filter(w=>w.length>=3);
+  hit=STUDENTS.filter(s=>{const sn=normN(s.name);return toks.length&&toks.every(w=>sn.indexOf(w)>-1)});
+  return hit.length===1?hit[0]:null;
+}
+function isDone(st,prog,label){
+  if(!st)return false;const today=new Date().toDateString();
+  return evals.some(e=>e.sid===st.id&&e.program===prog&&new Date(e.at).toDateString()===today&&(prog!=="Other"||String(e.note||"").indexOf(label)>-1));
+}
+function meetView(){
+  if(!window.tmData)return `<div class="empty">Loading…</div>`;
+  meetRows=[];let total=0,done=0,body="";
+  window.tmData(meetNo).forEach(g=>{
+    if(g.empty)return;
+    body+=`<div class="group">${esc(g.cat)} · ${esc(g.plain)}</div>`;
+    g.rows.forEach(r=>{
+      r.who.forEach(name=>{
+        const st=byName(name),prog=PMAP[r.label]||"Other",note=PMAP[r.label]?"":r.label,ok=isDone(st,prog,r.label);
+        total++;if(ok)done++;const k=meetRows.push({st,prog,note,label:r.label,name})-1;
+        body+=`<button class="card mrow${ok?" ok":""}" data-k="${k}"><div style="min-width:0"><div class="id">${esc(r.no==="★"?"★ ":r.no==="*"?"* ":r.no+". ")}${esc(r.label)}</div><div class="nm">${esc(name)}</div>${st?"":`<div class="id" style="color:var(--warn)">Not in student list – scan the ID card</div>`}</div><span class="chip">${ok?"✔ Done":"Evaluate"}</span></button>`;
+      });
+    });
+  });
+  const pct=total?Math.round(done*100/total):0;
+  return `<div class="meetbar"><button class="mstep" data-d="-1" aria-label="Previous meet">−</button><div style="text-align:center"><div class="id">Meet number</div><div class="nm" style="font-size:24px">Meet ${meetNo}</div></div><button class="mstep" data-d="1" aria-label="Next meet">+</button></div>
+    <div class="who" style="margin-top:12px"><div class="nm">${done} of ${total} evaluated today</div><div class="mprog"><span style="width:${pct}%"></span></div><div class="id" style="margin-top:6px">Tap a name to evaluate. Done items get a ✔.</div></div>`+(body||`<div class="empty">No programme list.</div>`);
+}
+function bindMeet(){
+  document.querySelectorAll(".mstep").forEach(b=>b.onclick=()=>{meetNo=Math.max(1,meetNo+(+b.dataset.d));try{localStorage.setItem("tm_meet",meetNo)}catch(e){}render();});
+  document.querySelectorAll(".mrow").forEach(b=>b.onclick=()=>{
+    const r=meetRows[+b.dataset.k];if(!r)return;
+    fromMeet=r;evalId=r.st?r.st.id:"";evalStudent=r.st;tab="evaluate";
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t==="evaluate"));
+    render();$("#main").scrollTop=0;
+    if(evalStudent){$("#fprog").value=r.prog;if(r.note)$("#fnote").value=r.note;}
+  });
+}
+function backToMeet(){if(!fromMeet)return false;fromMeet=null;tab="meet";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t==="meet"));render();return true;}
 
 function sel(id,arr){return `<select id="${id}"><option value="">Select</option>${arr.map(v=>`<option>${esc(v)}</option>`).join("")}</select>`}
 function findStudent(v){v=String(v||"").trim().toUpperCase();if(!v)return null;
@@ -324,13 +384,13 @@ function bindEval(){
   };
   $("#camBtn").onclick=startScan;
   if(!evalStudent)return;
-  $("#fcancel").onclick=()=>{evalId="";evalStudent=null;render()};
+  $("#fcancel").onclick=()=>{evalId="";evalStudent=null;if(!backToMeet())render()};
   $("#fsave").onclick=async()=>{
     const d={sid:evalStudent.id,program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
     const miss=[!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
     if(miss.length){$("#ferr").textContent="Please fill: "+miss.join(", ");return}
     const btn=$("#fsave");btn.disabled=true;btn.textContent="Saving…";
-    try{await api("saveResult",cred,d);evalId="";evalStudent=null;render();toast("Saved");refresh();}
+    try{await api("saveResult",cred,d);evalId="";evalStudent=null;toast("Saved");await refresh();if(!backToMeet())render();}
     catch(e){btn.disabled=false;btn.textContent="Save";$("#ferr").textContent="Could not save. Check the internet and try again.";}
   };
 }
@@ -475,6 +535,7 @@ $("#scClose").onclick=stopScan;
       return out;
     });
   }
+  window.tmData=tmData;
   function tmSchedule(day){
     var h='<b>Weekly Talent Meet · Meet '+day+'</b>';
     tmData(day).forEach(function(g){
