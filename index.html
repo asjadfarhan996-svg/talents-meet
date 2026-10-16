@@ -200,7 +200,7 @@ function loadSess(){try{return JSON.parse(localStorage.getItem("tm_sess")||"null
 function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",1600)}
 
 async function refresh(){
-  try{evals=await api("getResults",cred);loaded=true;if($("#app").classList.contains("on")&&tab!=="evaluate")render();}catch(e){}
+  try{evals=await api("getResults",cred);loaded=true;if($("#app").classList.contains("on")){if(tab==="admin"){const sc=$("#savedCount");if(sc)sc.textContent=evals.length;}else if(tab!=="evaluate")render();}}catch(e){}
 }
 function enterApp(r){
   role=r.role;me=r.me;STUDENTS=r.students||[];
@@ -269,10 +269,16 @@ function render(){
   }
   if(tab==="admin"&&role==="admin"){
     $("#ttl").textContent="Admin";
-    m.innerHTML=`<div class="who"><div class="nm">Saved results</div><div class="id" style="font-size:15px;margin-top:6px">${loaded?evals.length:"…"}</div></div>
+    m.innerHTML=`<div class="who"><div class="nm">Saved results</div><div class="id" id="savedCount" style="font-size:15px;margin-top:6px">${loaded?evals.length:"…"}</div></div>
       <div class="who"><div class="nm">Reset data</div><p class="sub" style="margin:6px 0 12px">Deletes every saved result. Student list is not changed.</p>
-      <button class="btn danger full" id="resetBtn" style="margin-top:0">Reset all results</button></div>`;
-    $("#resetBtn").onclick=resetAll;return;
+      <button class="btn danger full" id="resetBtn" style="margin-top:0">Reset all results</button></div>
+      <div class="who"><div class="nm">Add Staff</div><p class="sub" style="margin:6px 0 4px">The staff member can log in through <b>Staff Entry</b> with this username and password.</p>
+      <label for="su">Username</label><input id="su" autocomplete="off" autocapitalize="off">
+      <label for="sp">Password</label><input id="sp" autocomplete="new-password" autocapitalize="off">
+      <div class="err" id="serr"></div>
+      <button class="btn full" id="saddBtn" style="margin-top:6px">Add Staff</button>
+      <div class="group" style="margin-top:18px">Staff list</div><div id="staffList"><div class="empty" style="padding:14px">Loading…</div></div></div>`;
+    $("#resetBtn").onclick=resetAll;bindStaff();return;
   }
   if(tab==="meet"){$("#ttl").textContent="Meet Programme";m.innerHTML=meetView();bindMeet();return;}
   if(tab==="students"){$("#ttl").textContent="Students";m.innerHTML=searchBox("Search by name or ID")+studentList();}
@@ -285,6 +291,34 @@ function render(){
   }
   bindSearch();
 }
+
+/* ---------- Admin: staff accounts ---------- */
+async function loadStaff(){
+  const box=$("#staffList");if(!box)return;
+  try{
+    const list=await api("listStaff",cred);
+    if(!$("#staffList"))return;
+    $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card"><div style="min-width:0"><div class="nm">${esc(s.u)}</div><div class="id">Password: ${esc(s.p)}</div></div><button class="btn danger sdel" data-u="${esc(s.u)}" style="padding:8px 14px">Remove</button></div>`).join(""):`<div class="empty" style="padding:14px">No staff added yet.</div>`;
+    document.querySelectorAll(".sdel").forEach(b=>b.onclick=async()=>{
+      if(!confirm("Remove staff "+b.dataset.u+"? They will not be able to log in."))return;
+      b.disabled=true;b.textContent="Removing…";
+      try{await api("deleteStaff",cred,b.dataset.u);toast("Removed");loadStaff();}catch(e){b.disabled=false;b.textContent="Remove";alert(e.message||"Could not remove.")}
+    });
+  }catch(e){if($("#staffList"))$("#staffList").innerHTML=`<div class="empty" style="padding:14px">Could not load the staff list. ${esc(e.message||"")}</div>`;}
+}
+function bindStaff(){
+  $("#saddBtn").onclick=async()=>{
+    const u=$("#su").value.trim(),p=$("#sp").value,b=$("#saddBtn");$("#serr").textContent="";
+    if(u.length<3){$("#serr").textContent="Username must have at least 3 characters.";return}
+    if(p.length<4){$("#serr").textContent="Password must have at least 4 characters.";return}
+    b.disabled=true;b.textContent="Saving…";
+    try{await api("addStaff",cred,u,p);$("#su").value="";$("#sp").value="";toast("Staff added");loadStaff();}
+    catch(e){$("#serr").textContent=e.message||"Could not save. Check the internet and try again."}
+    b.disabled=false;b.textContent="Add Staff";
+  };
+  loadStaff();
+}
+
 async function delEval(id){
   if(!confirm("Delete this result?"))return;
   try{await api("deleteResult",cred,id);toast("Deleted");refresh();}catch(e){alert("Could not delete.")}
