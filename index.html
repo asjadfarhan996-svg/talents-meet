@@ -412,57 +412,59 @@ function pdfLib(){
     s.onload=()=>window.jspdf?res(window.jspdf):rej(new Error("x"));s.onerror=()=>{pdfLibP=null;rej(new Error("x"))};document.head.appendChild(s)});
   return pdfLibP;
 }
+function logoPng(){
+  try{const im=document.querySelector(".logo-ring img");if(!im||!im.complete)return null;
+    const c=document.createElement("canvas");c.width=c.height=240;const x=c.getContext("2d");
+    x.beginPath();x.arc(120,120,120,0,Math.PI*2);x.closePath();x.clip();x.fillStyle="#fff";x.fillRect(0,0,240,240);x.drawImage(im,0,0,240,240);
+    return c.toDataURL("image/png");}catch(e){return null}
+}
 async function resultPdf(btn){
   const R=currentReport();
   if(!R.list.length){alert("There are no results in this view to download.");return}
   btn.disabled=true;btn.textContent="Making PDF…";
   try{
-    const {jsPDF}=await pdfLib();const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});doc.setLineHeightFactor(1.29);
-    const NAVY=[31,47,122],TEAL=[15,107,104],INK=[22,34,79],MUT=[86,99,127],ZEB=[238,244,248],L=12,W=186,BOT=282;
-    const C=R.detail?[{h:"Rank",w:13,a:"c"},{h:"Name",w:45},{h:"Class",w:20},{h:"Programs & marks",w:88},{h:"Avg /100",w:20,a:"c"}]
-                    :[{h:"Rank",w:16,a:"c"},{h:"Name",w:70},{h:"Class",w:32},{h:"Programs",w:30,a:"c"},{h:"Average /100",w:38,a:"c"}];
-    const ink=c=>doc.setTextColor(c[0],c[1],c[2]),fill=c=>doc.setFillColor(c[0],c[1],c[2]);
-    let y=0,page=1;
-    function top(first){
-      fill(NAVY);doc.rect(0,0,210,first?6:4,"F");
-      if(!first){y=14;return}
-      ink(TEAL);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("DARUSWALAH ACADEMY",L,16);
-      ink(NAVY);doc.setFont("times","normal");doc.setFontSize(24);doc.text("TALENTS MEET",L,27);
-      ink(INK);doc.setFont("helvetica","bold");doc.setFontSize(13);doc.text(R.title,L,36);
-      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text(R.sub,L,42);
-      doc.text("Downloaded: "+shortDate(Date.now())+"   ·   "+R.list.length+" result"+(R.list.length===1?"":"s"),L,47);
-      doc.setDrawColor(TEAL[0],TEAL[1],TEAL[2]);doc.setLineWidth(.6);doc.roundedRect(158,13,40,30,3,3,"S");
-      ink(TEAL);doc.setFont("times","normal");doc.setFontSize(26);doc.text(R.avg===null?"–":String(R.avg),178,30,{align:"center"});
-      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("/ 100",178,35,{align:"center"});doc.setFontSize(7.5);doc.text("AVERAGE MARK",178,40,{align:"center"});
-      y=55;
+    const {jsPDF}=await pdfLib();const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});doc.setLineHeightFactor(1.25);
+    const NAVY=[31,47,122],ROSE=[176,23,95],INK=[30,34,48],MUT=[86,99,127],LINE=[211,223,233],TEAL=[15,107,104],L=14,W=182,BOT=280;
+    const pshort=e=>{const mk=mark(e);return (R.withMeet?"M"+e.meet+" ":"")+e.program+" "+(mk===null?"–":mk)};
+    const C=R.detail
+      ?[{h:"#",w:10},{h:"STUDENT ID",w:38},{h:"STUDENT NAME",w:46},{h:"CLASS",w:20},{h:"PROGRAMS & MARKS",w:48},{h:"AVG /100",w:20}]
+      :[{h:"#",w:10},{h:"STUDENT ID",w:40},{h:"STUDENT NAME",w:56},{h:"CLASS",w:24},{h:"PROGRAMS",w:24},{h:"AVG /100",w:28}];
+    const ink=c=>doc.setTextColor(c[0],c[1],c[2]),draw=c=>doc.setDrawColor(c[0],c[1],c[2]);
+    const logo=logoPng();let y=0;
+    function header(){
+      if(logo){doc.addImage(logo,"PNG",L,12,18,18)}
+      draw(LINE);doc.setLineWidth(.4);doc.circle(L+9,21,9.6,"S");
+      ink(NAVY);doc.setFont("times","normal");doc.setFontSize(19);doc.setCharSpace(1.2);doc.text("DARUSWALAH ACADEMY",L+24,20);
+      doc.setCharSpace(.8);ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text("TALENTS MEET · RESULT REPORT",L+24,26);doc.setCharSpace(0);
+      ink(TEAL);doc.setFont("times","normal");doc.setFontSize(22);doc.text(R.avg===null?"–":String(R.avg),L+W,20,{align:"right"});
+      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.text("AVERAGE / 100",L+W,26,{align:"right"});
+      draw(ROSE);doc.setLineWidth(.6);doc.line(L,34,L+W,34);
+      ink(NAVY);doc.setFont("times","normal");doc.setFontSize(14);doc.text(R.title,L+2,43);
+      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.text(R.sub+"   ·   "+R.list.length+" result"+(R.list.length===1?"":"s")+"   ·   "+shortDate(Date.now()),L+2,48.5);
+      draw(LINE);doc.setLineWidth(.3);doc.line(L,52,L+W,52);y=58;
     }
     function headRow(){
-      fill(NAVY);doc.rect(L,y,W,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);
-      let x=L;C.forEach(c=>{doc.text(c.h,c.a==="c"?x+c.w/2:x+2,y+5.4,c.a==="c"?{align:"center"}:{});x+=c.w});y+=8;
+      ink(INK);doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setCharSpace(.3);
+      let x=L+2;C.forEach(c=>{doc.text(c.h,x,y+4);x+=c.w});doc.setCharSpace(0);y+=8;
     }
-    function newPage(){doc.addPage();page++;top(false);headRow()}
-    top(true);
+    function newPage(){doc.addPage();y=16;headRow()}
+    header();
     R.sections.forEach(sc=>{
-      if(sc.head){if(y+18>BOT)newPage();ink(TEAL);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(sc.head+" ("+sc.rows.length+")",L,y+6);y+=9;}
+      if(sc.head){if(y+20>BOT)newPage();ink(NAVY);doc.setFont("times","normal");doc.setFontSize(12);doc.text(sc.head+" ("+sc.rows.length+")",L+2,y+4);y+=8;}
       headRow();
-      sc.rows.forEach((x,i)=>{
-        doc.setFont("helvetica","normal");doc.setFontSize(9);
-        const cells=R.detail
-          ?[x.rk,x.s.name,x.s.cls,x.items.map(e=>itemText(e,R.withMeet)).join("\n"),x.avg===null?"–":String(x.avg)]
-          :[x.rk,x.s.name,x.s.cls,String(x.n),x.avg===null?"–":String(x.avg)];
-        const lines=cells.map((v,k)=>doc.splitTextToSize(String(v),C[k].w-4));
-        const h=Math.max(7,Math.max(...lines.map(l=>l.length))*4.1+3);
+      sc.rows.forEach(x=>{
+        doc.setFont("helvetica","normal");doc.setFontSize(8.5);
+        const cells=[x.rk,x.s.id,x.s.name,x.s.cls,R.detail?x.items.map(pshort).join("\n"):String(x.n),x.avg===null?"–":String(x.avg)];
+        const lines=cells.map((v,k)=>doc.splitTextToSize(String(v),C[k].w-3));
+        const h=Math.max(8,Math.max(...lines.map(l=>l.length))*3.75+4.6);
         if(y+h>BOT)newPage();
-        if(i%2){fill(ZEB);doc.rect(L,y,W,h,"F")}
-        let xx=L;lines.forEach((l,k)=>{const c=C[k];
-          if(k===0||k===4){doc.setFont("helvetica","bold");ink(k===4?TEAL:INK)}else if(k===1){doc.setFont("helvetica","bold");ink(INK)}else{doc.setFont("helvetica","normal");ink(k===3&&R.detail?INK:MUT)}
-          doc.text(l,c.a==="c"?xx+c.w/2:xx+2,y+4.9,c.a==="c"?{align:"center"}:{});xx+=c.w});
-        doc.setDrawColor(211,223,233);doc.setLineWidth(.2);doc.line(L,y+h,L+W,y+h);y+=h;
+        let xx=L+2;lines.forEach((l,k)=>{doc.setFont("helvetica",k===5?"bold":"normal");ink(k===5?TEAL:k===4&&R.detail?MUT:INK);doc.text(l,xx,y+5.2);xx+=C[k].w});
+        draw(LINE);doc.setLineWidth(.25);doc.line(L,y+h,L+W,y+h);y+=h;
       });
-      y+=6;
+      y+=7;
     });
     const n=doc.getNumberOfPages();
-    for(let i=1;i<=n;i++){doc.setPage(i);ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Talents Meet · "+R.title,L,291);doc.text("Page "+i+" of "+n,198,291,{align:"right"})}
+    for(let i=1;i<=n;i++){doc.setPage(i);ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.text("Daruswalah Academy · Talents Meet",L,290);doc.text("Page "+i+" of "+n,L+W,290,{align:"right"})}
     doc.save("talents-meet-"+R.file+".pdf");
   }catch(e){alert("Could not make the PDF. Check the internet and try again.")}
   btn.disabled=false;btn.textContent="Download PDF (A4)";
@@ -487,7 +489,6 @@ function bindSlide(sw){
   const put=v=>{x=Math.max(0,Math.min(v,max()));k.style.transform=`translateX(${x}px)`;txt.style.opacity=String(1-x/max()*0.9)};
   const back=()=>{k.style.transition="transform .3s ease";txt.style.transition="opacity .3s ease";put(0);setTimeout(()=>{k.style.transition="";txt.style.transition=""},320)};
   async function go(){
-    if(!confirm("Delete staff \""+u+"\"?\nThey will not be able to log in any more.")){back();return}
     busy=true;txt.textContent="Deleting…";txt.style.opacity="1";
     try{await api("deleteStaff",cred,u);toast("Deleted");loadStaff();}
     catch(e){busy=false;txt.textContent="Delete";back();alert(e.message||"Could not delete. Check the internet and try again.")}
@@ -503,7 +504,7 @@ function bindSaveSlide(sw,btn){
   const max=()=>sw.clientWidth-k.offsetWidth;
   const put=v=>{x=Math.max(0,Math.min(v,max()));k.style.transform=`translateX(${x}px)`;txt.style.opacity=String(1-x/max()*0.9)};
   const back=()=>{k.style.transition="transform .3s ease";txt.style.transition="opacity .3s ease";put(0);setTimeout(()=>{k.style.transition="";txt.style.transition=""},320)};
-  const wait=()=>{if(btn.disabled){txt.textContent="Saving…";txt.style.opacity="1";setTimeout(wait,200)}else{busy=false;txt.textContent="Save";back()}};
+  const wait=()=>{if(!sw.isConnected)return;if(btn.disabled){txt.textContent="Saving…";txt.style.opacity="1";setTimeout(wait,200)}else{busy=false;txt.textContent="Save";back()}};
   const go=()=>{if(busy)return;busy=true;btn.click();setTimeout(wait,60)};
   k.addEventListener("pointerdown",e=>{if(busy)return;drag=true;st=e.clientX-x;k.setPointerCapture(e.pointerId)});
   k.addEventListener("pointermove",e=>{if(drag)put(e.clientX-st)});
@@ -597,7 +598,6 @@ function evalView(){
   <div class="scanrow"><input id="eid" placeholder="Scan barcode or type ID" value="${esc(evalId)}" autocapitalize="characters" autocomplete="off"><button class="cam" id="camBtn" aria-label="Scan barcode">${camIcon}</button></div>
   <div class="err" id="iderr"></div><div class="sugg" id="sugg"></div>
   ${evalStudent?`<div class="formcard">
-    <label for="fmeet">Meet number <span class="req">*</span></label><input id="fmeet" type="number" inputmode="numeric" min="1" value="${loaded?suggestMeet():""}">
     <label for="fprog">Performed Program <span class="req">*</span></label>${sel("fprog",PROGRAMS)}
     <label for="ftime">Time Management <span class="req">*</span></label>${sel("ftime",TIMES)}
     <label for="fjudge">Judgement <span class="req">*</span></label>${sel("fjudge",JUDGES)}
@@ -605,7 +605,8 @@ function evalView(){
     <label for="fnote">Additional Note</label><textarea id="fnote" placeholder="Optional"></textarea>
     <label for="fname">Student Name</label><input id="fname" readonly value="${esc(evalStudent.name)}">
     <div class="err" id="ferr"></div>
-    <div class="btnrow"><button class="btn ghost" id="fcancel">Cancel</button><button class="btn" id="fsave">Save</button></div>
+    <div class="sw sv" id="fsaveSw" role="group" aria-label="Slide right to save" style="margin-top:22px"><span class="swt">Save</span><div class="swk" tabindex="0" role="button" aria-label="Slide right to save"></div></div><button class="btn" id="fsave" style="display:none">Save</button>
+    <div class="center"><button class="btn ghost" id="fcancel" style="padding:10px 26px">Cancel</button></div>
   </div>`:`<div class="empty">Tap the camera and scan the student's barcode.</div>`}`;
 }
 function setStudent(v){
@@ -626,9 +627,10 @@ function bindEval(){
   $("#camBtn").onclick=startScan;
   if(!evalStudent)return;
   $("#fcancel").onclick=()=>{evalId="";evalStudent=null;if(!backToMeet())render()};
+  bindSaveSlide($("#fsaveSw"),$("#fsave"));
   $("#fsave").onclick=async()=>{
-    const d={sid:evalStudent.id,meet:parseInt($("#fmeet").value,10)||0,program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
-    const miss=[!(d.meet>=1)&&"Meet number",!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
+    const d={sid:evalStudent.id,meet:suggestMeet(),program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
+    const miss=[!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
     if(miss.length){$("#ferr").textContent="Please fill: "+miss.join(", ");return}
     const btn=$("#fsave");btn.disabled=true;btn.textContent="Saving…";
     try{await api("saveResult",cred,d);evalId="";evalStudent=null;toast("Saved");await refresh();if(!backToMeet())render();}
