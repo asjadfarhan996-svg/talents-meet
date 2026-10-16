@@ -136,6 +136,27 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
 .sw.sv .swk{background:linear-gradient(135deg,#0f9b5f,#3ddc84);box-shadow:0 6px 16px rgba(15,155,95,.35)}
 .swk.grab{cursor:grabbing;box-shadow:0 8px 22px rgba(236,12,140,.5)}
 .swk:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.sw.rs .swk{background:linear-gradient(135deg,#c81d25,#ff4b3e);box-shadow:0 6px 16px rgba(200,29,37,.38)}
+.res .head .chip{max-width:45%;overflow:hidden;text-overflow:ellipsis}
+.rtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.avg{text-align:right;line-height:1;flex:none}
+.avg b{font-family:var(--display);font-weight:400;font-size:30px;color:var(--teal)}
+.avg span{font-size:14px;color:var(--muted);margin-left:2px}
+.avg small{display:block;font-size:11px;color:var(--muted);margin-top:5px;letter-spacing:.04em}
+.rtabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.rtabs button,.subtabs button{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 6px;font-size:14px;font-weight:700}
+.rtabs button.on,.subtabs button.on{background:var(--pri);color:var(--pri-ink);border-color:var(--pri)}
+.subtabs{display:flex;gap:8px;margin:12px 0 4px}.subtabs button{flex:1}
+.lrow{cursor:default}
+.lrow .rk{flex:none;width:26px;text-align:center;font-weight:700;color:var(--muted);font-size:14px}
+.lrow .mid{flex:1;min-width:0}
+.lrow .nm{font-size:16px;overflow-wrap:anywhere}
+.sc{flex:none;text-align:right;font-family:var(--display);font-size:22px;color:var(--teal);line-height:1}
+.sc small{display:block;font-family:var(--body);font-size:10px;color:var(--muted);margin-top:3px}
+.sc.none{color:var(--muted);font-size:16px}
+.plist{margin-top:6px;font-size:12.5px;color:var(--text);line-height:1.55}.plist .del{padding:0 0 0 6px}
+.stname{font-family:var(--display);font-size:19px;color:var(--navy)}
+.stmeta{font-size:12px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
 .who{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -207,7 +228,7 @@ function loadSess(){try{return JSON.parse(localStorage.getItem("tm_sess")||"null
 function toast(t){const el=$("#toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",1600)}
 
 async function refresh(){
-  try{evals=await api("getResults",cred);loaded=true;if($("#app").classList.contains("on")){if(tab==="admin"){const sc=$("#savedCount");if(sc)sc.textContent=evals.length;}else if(tab!=="evaluate")render();}}catch(e){}
+  try{evals=prepEvals(await api("getResults",cred));loaded=true;if($("#app").classList.contains("on")){if(tab==="admin"){const sc=$("#savedCount");if(sc)sc.textContent=evals.length;}else if(tab!=="evaluate")render();}}catch(e){}
 }
 function enterApp(r){
   role=r.role;me=r.me;STUDENTS=r.students||[];
@@ -243,14 +264,33 @@ $("#p").addEventListener("keydown",e=>{if(e.key==="Enter")$("#doLogin").click()}
 $("#logout").onclick=()=>{clearInterval(poll);role="";me=null;cred=null;clearSess();evalId="";evalStudent=null;show("splash");};
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{fromMeet=null;tab=b.dataset.t;q="";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));render();$("#main").scrollTop=0;if(tab!=="evaluate")refresh();});
 
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fixVal(v){v=String(v||"");if(/^\d+\/10$/.test(v))return v;const d=new Date(v);if(/GMT|T\d\d:/.test(v)&&!isNaN(d))return (d.getMonth()+1)+"/"+d.getDate();return v}
+function mark(e){const n=parseInt(e.valuation,10);return isNaN(n)?null:Math.max(0,Math.min(10,n))*10}
+function avgOf(list){const m=list.map(mark).filter(x=>x!==null);return m.length?Math.round(m.reduce((a,b)=>a+b,0)/m.length):null}
+function shortDate(ms){const d=new Date(ms);if(isNaN(d))return "-";let h=d.getHours(),ap=h<12?"AM":"PM";h=h%12||12;return d.getDate()+" "+MON[d.getMonth()]+" "+d.getFullYear()+", "+h+":"+String(d.getMinutes()).padStart(2,"0")+" "+ap}
+function dayOnly(ms){const d=new Date(ms);return isNaN(d)?"":d.getDate()+" "+MON[d.getMonth()]+" "+d.getFullYear()}
+function prepEvals(list){
+  list.forEach(e=>{e.valuation=fixVal(e.valuation)});
+  const days=[...new Set(list.filter(e=>!(+e.meet)).map(e=>new Date(e.at).toDateString()))].sort((a,b)=>new Date(a)-new Date(b));
+  list.forEach(e=>{e.meet=(+e.meet)||(days.indexOf(new Date(e.at).toDateString())+1)});
+  return list;
+}
+function maxMeet(){return evals.reduce((m,e)=>Math.max(m,e.meet||0),0)}
+function suggestMeet(){
+  if(!evals.length)return 1;
+  const last=evals.reduce((a,b)=>b.at>a.at?b:a);
+  return new Date(last.at).toDateString()===new Date().toDateString()?last.meet:maxMeet()+1;
+}
 function resultCard(e,canDel){
   return `<div class="card res"><div class="head"><div><div class="nm">${esc(e.name)}</div><div class="id">${esc(e.sid)} · ${esc(e.cls)}</div></div><span class="chip">${esc(e.valuation)}</span></div>
+    <div class="row"><span>Meet</span><span>Meet ${esc(e.meet)}</span></div>
     <div class="row"><span>Program</span><span>${esc(e.program)}</span></div>
     <div class="row"><span>Time management</span><span>${esc(e.time)}</span></div>
     <div class="row"><span>Judgement</span><span>${esc(e.judgement)}</span></div>
     <div class="row"><span>Valuation</span><span>${esc(e.valuation)}</span></div>
     <div class="row"><span>Note</span><span>${esc(e.note||"-")}</span></div>
-    <div class="row"><span>Recorded</span><span>${new Date(e.at).toLocaleString()}</span></div>
+    <div class="row"><span>Recorded</span><span>${shortDate(e.at)}</span></div>
     ${canDel?`<button class="del" data-del="${esc(e._id)}">Delete</button>`:""}</div>`;
 }
 function searchBox(ph){return `<input id="q" placeholder="${ph}" value="${esc(q)}" style="margin-top:4px">`}
@@ -278,25 +318,154 @@ function render(){
     $("#ttl").textContent="Admin";
     m.innerHTML=`<div class="who"><div class="nm">Saved results</div><div class="id" id="savedCount" style="font-size:15px;margin-top:6px">${loaded?evals.length:"…"}</div></div>
       <div class="who"><div class="nm">Reset data</div><p class="sub" style="margin:6px 0 12px">Deletes every saved result. Student list is not changed.</p>
-      <button class="btn danger full" id="resetBtn" style="margin-top:0">Reset all results</button></div>
+      <div class="sw rs" id="resetSw" role="group" aria-label="Slide right to reset all results"><span class="swt">Reset</span><div class="swk" tabindex="0" role="button" aria-label="Slide right to reset all results"></div></div></div>
       <div class="who"><div class="nm">Add Staff</div><p class="sub" style="margin:6px 0 4px">The staff member can log in through <b>Staff Entry</b> with this username and password.</p>
+      <label for="sn">Name of staff</label><input id="sn" autocomplete="off" autocapitalize="words">
       <label for="su">Username</label><input id="su" autocomplete="off" autocapitalize="off">
       <label for="sp">Password</label><input id="sp" autocomplete="new-password" autocapitalize="off">
       <div class="err" id="serr"></div>
       <div class="sw sv" id="saddSw" role="group" aria-label="Slide right to save staff"><span class="swt">Save</span><div class="swk" tabindex="0" role="button" aria-label="Slide right to save staff"></div></div><button class="btn full" id="saddBtn" style="display:none">Add Staff</button>
       <div class="group" style="margin-top:18px">Staff list</div><div id="staffList"><div class="empty" style="padding:14px">Loading…</div></div></div>`;
-    $("#resetBtn").onclick=resetAll;bindStaff();return;
+    bindResetSlide($("#resetSw"));bindStaff();return;
   }
   if(tab==="meet"){$("#ttl").textContent="Meet Programme";m.innerHTML=meetView();bindMeet();return;}
   if(tab==="students"){$("#ttl").textContent="Students";m.innerHTML=searchBox("Search by name or ID")+studentList();}
   else if(tab==="evaluate"){$("#ttl").textContent="Evaluate Program";m.innerHTML=evalView();bindEval();return;}
-  else{$("#ttl").textContent="Check Result";
-    const t=q.trim().toLowerCase();
-    const list=evals.filter(e=>!t||e.name.toLowerCase().includes(t)||e.sid.toLowerCase().includes(t)||e.program.toLowerCase().includes(t)).sort((a,b)=>b.at-a.at);
-    m.innerHTML=searchBox("Search result by name or ID")+(!loaded?`<div class="empty">Loading…</div>`:list.length?list.map(e=>resultCard(e,role==="admin")).join(""):`<div class="empty">No results yet.</div>`);
-    m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delEval(b.dataset.del));
-  }
+  else{$("#ttl").textContent="Results";m.innerHTML=resultsView();bindResults();return;}
   bindSearch();
+}
+
+/* ---------- Saved results: 4 views ---------- */
+let rv="student",rcls="S1",rmeet=0;
+const RVIEWS=[["student","Student-wise"],["class","Class-wise"],["meet","Meet-wise"],["college","College-wise"]];
+const RCLS={S1:{label:"Plus Two & Degree",cls:["Plus Two","Degree 1"]},S2:{label:"Plus One",cls:["Plus One"]}};
+function ranked(studs,list,keepEmpty){
+  const rows=studs.map(s=>{const items=list.filter(e=>e.sid===s.id).sort((a,b)=>a.meet-b.meet||a.at-b.at);return {s,items,n:items.length,avg:avgOf(items)}})
+    .filter(x=>keepEmpty||x.n);
+  rows.sort((a,b)=>(b.avg===null?-1:b.avg)-(a.avg===null?-1:a.avg)||a.s.name.localeCompare(b.s.name));
+  let r=0,prev=null,shown=0;
+  rows.forEach(x=>{shown++;if(x.avg===null){x.rk="–";return}if(x.avg!==prev){r=shown;prev=x.avg}x.rk=String(r)});
+  return rows;
+}
+function itemText(e,withMeet){const mk=mark(e);return (withMeet?"Meet "+e.meet+" · ":"")+e.program+" · "+e.time+" · "+e.judgement+" — "+(mk===null?"–":mk)}
+function rowsHtml(rows,detail,withMeet){
+  if(!rows.length)return `<div class="empty">No results yet.</div>`;
+  return rows.map(x=>`<div class="card lrow"><span class="rk">${x.rk}</span><div class="mid"><div class="nm">${esc(x.s.name)}</div><div class="id">${esc(x.s.cls)} · ${x.n} program${x.n===1?"":"s"}</div>${detail&&x.n?`<div class="plist">${x.items.map(e=>`<div>${esc(itemText(e,withMeet))}${role==="admin"&&rv==="student"?` <button class="del" data-del="${esc(e._id)}">Delete</button>`:""}</div>`).join("")}</div>`:""}</div>${x.avg===null?`<span class="sc none">—</span>`:`<span class="sc">${x.avg}<small>/100</small></span>`}</div>`).join("");
+}
+/* what is on screen now, as sections — used for both the screen and the PDF */
+function currentReport(){
+  const R={title:"",sub:"",file:"",detail:false,withMeet:false,sections:[],list:[]};
+  if(rv==="student"){
+    const t=q.trim().toLowerCase();
+    R.list=evals.filter(e=>!t||e.name.toLowerCase().includes(t)||e.sid.toLowerCase().includes(t)||e.program.toLowerCase().includes(t));
+    R.title="Student-wise Result";R.sub=t?"Search: "+q.trim():"All students with results";R.file="student-wise";R.detail=true;R.withMeet=true;
+    R.sections=[{head:"",rows:ranked(STUDENTS,R.list,false)}];
+  }else if(rv==="class"){
+    const c=RCLS[rcls];R.list=evals.filter(e=>c.cls.includes(e.cls));
+    R.title="Class-wise Result";R.sub=c.label+" · all meets";R.file="class-wise-"+c.label.toLowerCase().replace(/[^a-z]+/g,"-");
+    R.sections=[{head:"",rows:ranked(STUDENTS.filter(s=>c.cls.includes(s.cls)),R.list,true)}];
+  }else if(rv==="meet"){
+    const mx=maxMeet();if(!rmeet||rmeet>mx)rmeet=mx;
+    R.list=evals.filter(e=>e.meet===rmeet);const day=R.list.length?dayOnly(Math.min(...R.list.map(e=>e.at))):"";
+    R.title="Meet-wise Result";R.sub="Meet "+rmeet+(day?" · "+day:"");R.file="meet-"+rmeet;R.detail=true;R.day=day;
+    ["S1","S2"].forEach(k=>{const l=R.list.filter(e=>RCLS[k].cls.includes(e.cls));if(l.length)R.sections.push({head:RCLS[k].label,rows:ranked(STUDENTS,l,false)})});
+  }else{
+    R.list=evals;const mx=maxMeet();
+    R.title="College-wise Result";R.sub="Whole college · "+mx+" meet"+(mx===1?"":"s")+" so far";R.file="college-wise";
+    R.sections=[{head:"",rows:ranked(STUDENTS.slice(),R.list,true)}];
+  }
+  R.avg=avgOf(R.list);return R;
+}
+function resultsView(){
+  if(!loaded)return `<div class="empty">Loading…</div>`;
+  const R=currentReport();let body="";
+  if(rv==="student")body=searchBox("Search by name, ID or program");
+  if(rv==="class")body=`<div class="subtabs">${Object.keys(RCLS).map(k=>`<button data-rc="${k}" class="${k===rcls?"on":""}">${RCLS[k].label}</button>`).join("")}</div>`;
+  if(rv==="meet"){
+    if(!maxMeet())body=`<div class="empty">No results yet.</div>`;
+    else body=`<div class="meetbar" style="margin-top:12px"><button class="mstep" data-rm="-1" aria-label="Previous meet">−</button><div style="text-align:center"><div class="id">${esc(R.day)||"Meet number"}</div><div class="nm" style="font-size:24px">Meet ${rmeet}</div></div><button class="mstep" data-rm="1" aria-label="Next meet">+</button></div>`;
+  }
+  if(!(rv==="meet"&&!maxMeet())){
+    if(rv!=="meet")body+=`<div class="group">${esc(R.sub)}</div>`;
+    if(!R.sections.length)body+=`<div class="empty">No results yet.</div>`;
+    R.sections.forEach(sc=>{if(sc.head)body+=`<div class="group">${esc(sc.head)} (${sc.rows.length})</div>`;body+=rowsHtml(sc.rows,R.detail,R.withMeet)});
+  }
+  return `<div class="who"><div class="rtop"><div><div class="stname">Saved Results</div><div class="stmeta">${R.list.length} result${R.list.length===1?"":"s"} in this view</div></div>
+      <div class="avg"><b>${R.avg===null?"–":R.avg}</b><span>/100</span><small>AVERAGE</small></div></div>
+      <div class="rtabs">${RVIEWS.map(([k,l])=>`<button data-rv="${k}" class="${k===rv?"on":""}">${l}</button>`).join("")}</div>
+      <button class="btn full" id="pdfBtn" style="margin-top:12px">Download PDF (A4)</button></div>`+body;
+}
+function bindResults(){
+  const m=$("#main");
+  m.querySelectorAll("[data-rv]").forEach(b=>b.onclick=()=>{rv=b.dataset.rv;q="";render()});
+  m.querySelectorAll("[data-rc]").forEach(b=>b.onclick=()=>{rcls=b.dataset.rc;render()});
+  m.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{rmeet=Math.max(1,Math.min(maxMeet(),rmeet+(+b.dataset.rm)));render()});
+  m.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delEval(b.dataset.del));
+  const pb=$("#pdfBtn");if(pb)pb.onclick=()=>resultPdf(pb);
+  bindSearch();
+}
+let pdfLibP=null;
+function pdfLib(){
+  if(window.jspdf)return Promise.resolve(window.jspdf);
+  if(pdfLibP)return pdfLibP;
+  pdfLibP=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    s.onload=()=>window.jspdf?res(window.jspdf):rej(new Error("x"));s.onerror=()=>{pdfLibP=null;rej(new Error("x"))};document.head.appendChild(s)});
+  return pdfLibP;
+}
+async function resultPdf(btn){
+  const R=currentReport();
+  if(!R.list.length){alert("There are no results in this view to download.");return}
+  btn.disabled=true;btn.textContent="Making PDF…";
+  try{
+    const {jsPDF}=await pdfLib();const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});doc.setLineHeightFactor(1.29);
+    const NAVY=[31,47,122],TEAL=[15,107,104],INK=[22,34,79],MUT=[86,99,127],ZEB=[238,244,248],L=12,W=186,BOT=282;
+    const C=R.detail?[{h:"Rank",w:13,a:"c"},{h:"Name",w:45},{h:"Class",w:20},{h:"Programs & marks",w:88},{h:"Avg /100",w:20,a:"c"}]
+                    :[{h:"Rank",w:16,a:"c"},{h:"Name",w:70},{h:"Class",w:32},{h:"Programs",w:30,a:"c"},{h:"Average /100",w:38,a:"c"}];
+    const ink=c=>doc.setTextColor(c[0],c[1],c[2]),fill=c=>doc.setFillColor(c[0],c[1],c[2]);
+    let y=0,page=1;
+    function top(first){
+      fill(NAVY);doc.rect(0,0,210,first?6:4,"F");
+      if(!first){y=14;return}
+      ink(TEAL);doc.setFont("helvetica","bold");doc.setFontSize(9);doc.text("DARUSWALAH ACADEMY",L,16);
+      ink(NAVY);doc.setFont("times","normal");doc.setFontSize(24);doc.text("TALENTS MEET",L,27);
+      ink(INK);doc.setFont("helvetica","bold");doc.setFontSize(13);doc.text(R.title,L,36);
+      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(10);doc.text(R.sub,L,42);
+      doc.text("Downloaded: "+shortDate(Date.now())+"   ·   "+R.list.length+" result"+(R.list.length===1?"":"s"),L,47);
+      doc.setDrawColor(TEAL[0],TEAL[1],TEAL[2]);doc.setLineWidth(.6);doc.roundedRect(158,13,40,30,3,3,"S");
+      ink(TEAL);doc.setFont("times","normal");doc.setFontSize(26);doc.text(R.avg===null?"–":String(R.avg),178,30,{align:"center"});
+      ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(9);doc.text("/ 100",178,35,{align:"center"});doc.setFontSize(7.5);doc.text("AVERAGE MARK",178,40,{align:"center"});
+      y=55;
+    }
+    function headRow(){
+      fill(NAVY);doc.rect(L,y,W,8,"F");doc.setTextColor(255,255,255);doc.setFont("helvetica","bold");doc.setFontSize(9);
+      let x=L;C.forEach(c=>{doc.text(c.h,c.a==="c"?x+c.w/2:x+2,y+5.4,c.a==="c"?{align:"center"}:{});x+=c.w});y+=8;
+    }
+    function newPage(){doc.addPage();page++;top(false);headRow()}
+    top(true);
+    R.sections.forEach(sc=>{
+      if(sc.head){if(y+18>BOT)newPage();ink(TEAL);doc.setFont("helvetica","bold");doc.setFontSize(11);doc.text(sc.head+" ("+sc.rows.length+")",L,y+6);y+=9;}
+      headRow();
+      sc.rows.forEach((x,i)=>{
+        doc.setFont("helvetica","normal");doc.setFontSize(9);
+        const cells=R.detail
+          ?[x.rk,x.s.name,x.s.cls,x.items.map(e=>itemText(e,R.withMeet)).join("\n"),x.avg===null?"–":String(x.avg)]
+          :[x.rk,x.s.name,x.s.cls,String(x.n),x.avg===null?"–":String(x.avg)];
+        const lines=cells.map((v,k)=>doc.splitTextToSize(String(v),C[k].w-4));
+        const h=Math.max(7,Math.max(...lines.map(l=>l.length))*4.1+3);
+        if(y+h>BOT)newPage();
+        if(i%2){fill(ZEB);doc.rect(L,y,W,h,"F")}
+        let xx=L;lines.forEach((l,k)=>{const c=C[k];
+          if(k===0||k===4){doc.setFont("helvetica","bold");ink(k===4?TEAL:INK)}else if(k===1){doc.setFont("helvetica","bold");ink(INK)}else{doc.setFont("helvetica","normal");ink(k===3&&R.detail?INK:MUT)}
+          doc.text(l,c.a==="c"?xx+c.w/2:xx+2,y+4.9,c.a==="c"?{align:"center"}:{});xx+=c.w});
+        doc.setDrawColor(211,223,233);doc.setLineWidth(.2);doc.line(L,y+h,L+W,y+h);y+=h;
+      });
+      y+=6;
+    });
+    const n=doc.getNumberOfPages();
+    for(let i=1;i<=n;i++){doc.setPage(i);ink(MUT);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text("Talents Meet · "+R.title,L,291);doc.text("Page "+i+" of "+n,198,291,{align:"right"})}
+    doc.save("talents-meet-"+R.file+".pdf");
+  }catch(e){alert("Could not make the PDF. Check the internet and try again.")}
+  btn.disabled=false;btn.textContent="Download PDF (A4)";
 }
 
 /* ---------- Admin: staff accounts ---------- */
@@ -305,7 +474,7 @@ async function loadStaff(){
   try{
     const list=await api("listStaff",cred);
     if(!$("#staffList"))return;
-    $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card scard"><div style="min-width:0"><div class="nm">${esc(s.u)}</div><div class="id">Password: ${esc(s.p)}</div></div>
+    $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card scard"><div style="min-width:0"><div class="stname">${esc(s.n||s.u)}</div><div class="stmeta">Username: ${esc(s.u)} · Password: ${esc(s.p)}</div></div>
       <div class="sw" data-u="${esc(s.u)}" role="group" aria-label="Slide right to delete ${esc(s.u)}"><span class="swt">Delete</span><div class="swk" tabindex="0" role="button" aria-label="Delete ${esc(s.u)}"></div></div></div>`).join(""):`<div class="empty" style="padding:14px">No staff added yet.</div>`;
     document.querySelectorAll("#staffList .sw").forEach(bindSlide);
   }catch(e){if($("#staffList"))$("#staffList").innerHTML=`<div class="empty" style="padding:14px">Could not load the staff list. ${esc(e.message||"")}</div>`;}
@@ -344,11 +513,12 @@ function bindSaveSlide(sw,btn){
 }
 function bindStaff(){
   $("#saddBtn").onclick=async()=>{
-    const u=$("#su").value.trim(),p=$("#sp").value,b=$("#saddBtn");$("#serr").textContent="";
+    const n=$("#sn").value.trim().replace(/\s+/g," "),u=$("#su").value.trim(),p=$("#sp").value,b=$("#saddBtn");$("#serr").textContent="";
+    if(n.length<2){$("#serr").textContent="Please enter the name of the staff.";return}
     if(u.length<3){$("#serr").textContent="Username must have at least 3 characters.";return}
     if(p.length<4){$("#serr").textContent="Password must have at least 4 characters.";return}
     b.disabled=true;b.textContent="Saving…";
-    try{await api("addStaff",cred,u,p);$("#su").value="";$("#sp").value="";toast("Staff added");loadStaff();}
+    try{await api("addStaff",cred,u,p,n);$("#sn").value="";$("#su").value="";$("#sp").value="";toast("Staff added");loadStaff();}
     catch(e){$("#serr").textContent=e.message||"Could not save. Check the internet and try again."}
     b.disabled=false;b.textContent="Add Staff";
   };
@@ -360,12 +530,22 @@ async function delEval(id){
   if(!confirm("Delete this result?"))return;
   try{await api("deleteResult",cred,id);toast("Deleted");refresh();}catch(e){alert("Could not delete.")}
 }
-async function resetAll(){
-  if(!confirm("Delete ALL results? This cannot be undone."))return;
-  if(prompt("Type RESET to confirm")!=="RESET")return;
-  const b=$("#resetBtn");b.disabled=true;b.textContent="Deleting…";
-  try{await api("resetAll",cred);evals=[];toast("All results deleted");}catch(e){alert("Could not reset.")}
-  render();
+function bindResetSlide(sw){
+  const k=sw.querySelector(".swk"),txt=sw.querySelector(".swt");let x=0,st=0,drag=false,busy=false;
+  const max=()=>sw.clientWidth-k.offsetWidth;
+  const put=v=>{x=Math.max(0,Math.min(v,max()));k.style.transform=`translateX(${x}px)`;txt.style.opacity=String(1-x/max()*0.9)};
+  const back=()=>{k.style.transition="transform .3s ease";txt.style.transition="opacity .3s ease";put(0);setTimeout(()=>{k.style.transition="";txt.style.transition=""},320)};
+  async function go(){
+    if(!confirm("Delete ALL saved results?\nThis cannot be undone.")){back();return}
+    busy=true;txt.textContent="Deleting…";txt.style.opacity="1";
+    try{await api("resetAll",cred);evals=[];toast("All results deleted");render();}
+    catch(e){busy=false;txt.textContent="Reset";back();alert("Could not reset. Check the internet and try again.")}
+  }
+  k.addEventListener("pointerdown",e=>{if(busy)return;drag=true;st=e.clientX-x;k.setPointerCapture(e.pointerId)});
+  k.addEventListener("pointermove",e=>{if(drag)put(e.clientX-st)});
+  const end=()=>{if(!drag)return;drag=false;if(x>=max()*0.85){put(max());go()}else back()};
+  k.addEventListener("pointerup",end);k.addEventListener("pointercancel",end);
+  k.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&!busy){e.preventDefault();put(max());go()}});
 }
 
 
@@ -417,6 +597,7 @@ function evalView(){
   <div class="scanrow"><input id="eid" placeholder="Scan barcode or type ID" value="${esc(evalId)}" autocapitalize="characters" autocomplete="off"><button class="cam" id="camBtn" aria-label="Scan barcode">${camIcon}</button></div>
   <div class="err" id="iderr"></div><div class="sugg" id="sugg"></div>
   ${evalStudent?`<div class="formcard">
+    <label for="fmeet">Meet number <span class="req">*</span></label><input id="fmeet" type="number" inputmode="numeric" min="1" value="${loaded?suggestMeet():""}">
     <label for="fprog">Performed Program <span class="req">*</span></label>${sel("fprog",PROGRAMS)}
     <label for="ftime">Time Management <span class="req">*</span></label>${sel("ftime",TIMES)}
     <label for="fjudge">Judgement <span class="req">*</span></label>${sel("fjudge",JUDGES)}
@@ -446,8 +627,8 @@ function bindEval(){
   if(!evalStudent)return;
   $("#fcancel").onclick=()=>{evalId="";evalStudent=null;if(!backToMeet())render()};
   $("#fsave").onclick=async()=>{
-    const d={sid:evalStudent.id,program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
-    const miss=[!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
+    const d={sid:evalStudent.id,meet:parseInt($("#fmeet").value,10)||0,program:$("#fprog").value,time:$("#ftime").value,judgement:$("#fjudge").value,valuation:$("#fval").value,note:$("#fnote").value.trim()};
+    const miss=[!(d.meet>=1)&&"Meet number",!d.program&&"Performed Program",!d.time&&"Time Management",!d.judgement&&"Judgement",!d.valuation&&"Valuation"].filter(Boolean);
     if(miss.length){$("#ferr").textContent="Please fill: "+miss.join(", ");return}
     const btn=$("#fsave");btn.disabled=true;btn.textContent="Saving…";
     try{await api("saveResult",cred,d);evalId="";evalStudent=null;toast("Saved");await refresh();if(!backToMeet())render();}
