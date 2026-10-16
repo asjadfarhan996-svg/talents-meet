@@ -124,7 +124,7 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
 .danger{background:var(--bad);color:var(--bad-ink)}
 .meetbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
 .mstep{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--line);background:var(--card);color:var(--navy);font-size:26px;font-weight:700;line-height:1}
-.mrow{cursor:pointer}
+.mrow{cursor:default}
 .mrow.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent)}
 .mrow.ok .chip{background:var(--ok);color:var(--ok-ink)}
 .mprog{height:8px;border-radius:999px;background:color-mix(in srgb,var(--teal) 15%,transparent);margin-top:10px;overflow:hidden}
@@ -318,31 +318,20 @@ function isDone(st,prog,label){
 }
 function meetView(){
   if(!window.tmData)return `<div class="empty">Loading…</div>`;
-  meetRows=[];let total=0,done=0,body="";
+  let body="";
   window.tmData(meetNo).forEach(g=>{
     if(g.empty)return;
     body+=`<div class="group">${esc(g.cat)} · ${esc(g.plain)}</div>`;
     g.rows.forEach(r=>{
       r.who.forEach(name=>{
-        const st=byName(name),prog=PMAP[r.label]||"Other",note=PMAP[r.label]?"":r.label,ok=isDone(st,prog,r.label);
-        total++;if(ok)done++;const k=meetRows.push({st,prog,note,label:r.label,name})-1;
-        body+=`<button class="card mrow${ok?" ok":""}" data-k="${k}"><div style="min-width:0"><div class="id">${esc(r.no==="★"?"★ ":r.no==="*"?"* ":r.no+". ")}${esc(r.label)}</div><div class="nm">${esc(name)}</div>${st?"":`<div class="id" style="color:var(--warn)">Not in student list – scan the ID card</div>`}</div><span class="chip">${ok?"✔ Done":"Evaluate"}</span></button>`;
+        body+=`<div class="card mrow"><div style="min-width:0"><div class="id">${esc(r.no==="★"?"★ ":r.no==="*"?"* ":r.no+". ")}${esc(r.label)}</div><div class="nm">${esc(name)}</div></div></div>`;
       });
     });
   });
-  const pct=total?Math.round(done*100/total):0;
-  return `<div class="meetbar"><button class="mstep" data-d="-1" aria-label="Previous meet">−</button><div style="text-align:center"><div class="id">Meet number</div><div class="nm" style="font-size:24px">Meet ${meetNo}</div></div><button class="mstep" data-d="1" aria-label="Next meet">+</button></div>
-    <div class="who" style="margin-top:12px"><div class="nm">${done} of ${total} evaluated today</div><div class="mprog"><span style="width:${pct}%"></span></div><div class="id" style="margin-top:6px">Tap a name to evaluate. Done items get a ✔.</div></div>`+(body||`<div class="empty">No programme list.</div>`);
+  return `<div class="meetbar"><button class="mstep" data-d="-1" aria-label="Previous meet">−</button><div style="text-align:center"><div class="id">Meet number</div><div class="nm" style="font-size:24px">Meet ${meetNo}</div></div><button class="mstep" data-d="1" aria-label="Next meet">+</button></div>`+(body||`<div class="empty">No programme list.</div>`);
 }
 function bindMeet(){
   document.querySelectorAll(".mstep").forEach(b=>b.onclick=()=>{meetNo=Math.max(1,meetNo+(+b.dataset.d));try{localStorage.setItem("tm_meet",meetNo)}catch(e){}render();});
-  document.querySelectorAll(".mrow").forEach(b=>b.onclick=()=>{
-    const r=meetRows[+b.dataset.k];if(!r)return;
-    fromMeet=r;evalId=r.st?r.st.id:"";evalStudent=r.st;tab="evaluate";
-    document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t==="evaluate"));
-    render();$("#main").scrollTop=0;
-    if(evalStudent){$("#fprog").value=r.prog;if(r.note)$("#fnote").value=r.note;}
-  });
 }
 function backToMeet(){if(!fromMeet)return false;fromMeet=null;tab="meet";document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t==="meet"));render();return true;}
 
