@@ -557,12 +557,11 @@ $("#scClose").onclick=stopScan;
         shape([106,172,229],[5.5,5.5],[[204.5,5.5],[204.5,40],[170,28,140,26,110,36],[85,44,50,46,5.5,38]]);
         border();
         ink(NAVY);doc.setFont('times','bold');doc.setFontSize(9);doc.text('Sl No :  '+day,14,17);
-        fill([236,239,243]);doc.rect(29,26,103,10,'F');
-        fill(NAVY);doc.rect(132,26,39,10,'F');
-        ink(NAVY);doc.setFont('times','normal');doc.setFontSize(21);doc.text('WEEKLY TALENT MEET',129,33.6,{align:'right'});
-        ink([214,228,245]);doc.text('2025 - 2026',151.5,33.6,{align:'center'});
-        fill(NAVY);doc.rect(57,37,47,6.5,'F');doc.rect(106,38.5,65,3.5,'F');
-        ink([255,255,255]);doc.setFontSize(11.5);doc.text('Do Your Best And Beyond',80.5,41.6,{align:'center'});
+        fill([236,239,243]);doc.rect(45,25,120,11,'F');
+        fill(NAVY);doc.rect(45,25,3,11,'F');doc.rect(162,25,3,11,'F');
+        ink(NAVY);doc.setFont('times','normal');doc.setFontSize(22);doc.text('WEEKLY TALENT MEET',105,33,{align:'center'});
+        fill(NAVY);doc.rect(81.5,37.5,47,6.5,'F');
+        ink([255,255,255]);doc.setFontSize(11.5);doc.text('Do Your Best And Beyond',105,42.1,{align:'center'});
         ink([36,62,110]);doc.setFontSize(10);doc.setCharSpace(0.9);doc.text('SNEC • DARUSWALAH ISLAMIC ACADEMY',105,53,{align:'center'});doc.setCharSpace(0);
         ink(ROSE);doc.setFont('times','bold');doc.setFontSize(12);doc.text('CATEGORY :',18,67.4);
         [['S1',46,20],['S2',70,20],['GNR',94,28]].forEach(function(c){
