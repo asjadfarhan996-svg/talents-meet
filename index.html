@@ -130,9 +130,10 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
 .mprog{height:8px;border-radius:999px;background:color-mix(in srgb,var(--teal) 15%,transparent);margin-top:10px;overflow:hidden}
 .mprog span{display:block;height:100%;background:var(--teal);border-radius:999px}
 .scard{flex-direction:column;align-items:stretch;gap:12px}
-.sw{position:relative;height:56px;margin:8px 0 4px 0;border-radius:28px 44px 12px 28px;background:linear-gradient(135deg,#fbfbfb,#d3dadb);touch-action:none;user-select:none;-webkit-user-select:none}
+.sw{position:relative;height:56px;margin:8px 0 4px 0;border-radius:12px 44px 12px 44px;background:linear-gradient(135deg,#fbfbfb,#d3dadb);touch-action:none;user-select:none;-webkit-user-select:none}
 .swt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-left:56px;color:#121212;font-size:22px;font-weight:600;letter-spacing:.01em;pointer-events:none}
 .swk{position:absolute;left:0;top:-7px;width:76px;height:70px;border-radius:12px 64px 12px 64px;background:linear-gradient(135deg,#ec0c8c,#ff5e62);box-shadow:0 6px 16px rgba(236,12,140,.35);cursor:grab;touch-action:none;z-index:1}
+.sw.sv .swk{background:linear-gradient(135deg,#0f9b5f,#3ddc84);box-shadow:0 6px 16px rgba(15,155,95,.35)}
 .swk.grab{cursor:grabbing;box-shadow:0 8px 22px rgba(236,12,140,.5)}
 .swk:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
 .who{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 4px}
@@ -282,7 +283,7 @@ function render(){
       <label for="su">Username</label><input id="su" autocomplete="off" autocapitalize="off">
       <label for="sp">Password</label><input id="sp" autocomplete="new-password" autocapitalize="off">
       <div class="err" id="serr"></div>
-      <button class="btn full" id="saddBtn" style="margin-top:6px">Add Staff</button>
+      <div class="sw sv" id="saddSw" role="group" aria-label="Slide right to save staff"><span class="swt">Save</span><div class="swk" tabindex="0" role="button" aria-label="Slide right to save staff"></div></div><button class="btn full" id="saddBtn" style="display:none">Add Staff</button>
       <div class="group" style="margin-top:18px">Staff list</div><div id="staffList"><div class="empty" style="padding:14px">Loading…</div></div></div>`;
     $("#resetBtn").onclick=resetAll;bindStaff();return;
   }
@@ -306,7 +307,7 @@ async function loadStaff(){
     if(!$("#staffList"))return;
     $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card scard"><div style="min-width:0"><div class="nm">${esc(s.u)}</div><div class="id">Password: ${esc(s.p)}</div></div>
       <div class="sw" data-u="${esc(s.u)}" role="group" aria-label="Slide right to delete ${esc(s.u)}"><span class="swt">Delete</span><div class="swk" tabindex="0" role="button" aria-label="Delete ${esc(s.u)}"></div></div></div>`).join(""):`<div class="empty" style="padding:14px">No staff added yet.</div>`;
-    document.querySelectorAll(".sw").forEach(bindSlide);
+    document.querySelectorAll("#staffList .sw").forEach(bindSlide);
   }catch(e){if($("#staffList"))$("#staffList").innerHTML=`<div class="empty" style="padding:14px">Could not load the staff list. ${esc(e.message||"")}</div>`;}
 }
 
@@ -328,6 +329,19 @@ function bindSlide(sw){
   k.addEventListener("pointerup",end);k.addEventListener("pointercancel",end);
   k.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&!busy){e.preventDefault();put(max());go()}});
 }
+function bindSaveSlide(sw,btn){
+  const k=sw.querySelector(".swk"),txt=sw.querySelector(".swt");let x=0,st=0,drag=false,busy=false;
+  const max=()=>sw.clientWidth-k.offsetWidth;
+  const put=v=>{x=Math.max(0,Math.min(v,max()));k.style.transform=`translateX(${x}px)`;txt.style.opacity=String(1-x/max()*0.9)};
+  const back=()=>{k.style.transition="transform .3s ease";txt.style.transition="opacity .3s ease";put(0);setTimeout(()=>{k.style.transition="";txt.style.transition=""},320)};
+  const wait=()=>{if(btn.disabled){txt.textContent="Saving…";txt.style.opacity="1";setTimeout(wait,200)}else{busy=false;txt.textContent="Save";back()}};
+  const go=()=>{if(busy)return;busy=true;btn.click();setTimeout(wait,60)};
+  k.addEventListener("pointerdown",e=>{if(busy)return;drag=true;st=e.clientX-x;k.setPointerCapture(e.pointerId)});
+  k.addEventListener("pointermove",e=>{if(drag)put(e.clientX-st)});
+  const end=()=>{if(!drag)return;drag=false;if(x>=max()*0.85){put(max());go()}else back()};
+  k.addEventListener("pointerup",end);k.addEventListener("pointercancel",end);
+  k.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&!busy){e.preventDefault();put(max());go()}});
+}
 function bindStaff(){
   $("#saddBtn").onclick=async()=>{
     const u=$("#su").value.trim(),p=$("#sp").value,b=$("#saddBtn");$("#serr").textContent="";
@@ -338,6 +352,7 @@ function bindStaff(){
     catch(e){$("#serr").textContent=e.message||"Could not save. Check the internet and try again."}
     b.disabled=false;b.textContent="Add Staff";
   };
+  bindSaveSlide($("#saddSw"),$("#saddBtn"));
   loadStaff();
 }
 
