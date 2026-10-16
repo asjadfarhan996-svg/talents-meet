@@ -129,6 +129,12 @@ input[readonly]{color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,tr
 .mrow.ok .chip{background:var(--ok);color:var(--ok-ink)}
 .mprog{height:8px;border-radius:999px;background:color-mix(in srgb,var(--teal) 15%,transparent);margin-top:10px;overflow:hidden}
 .mprog span{display:block;height:100%;background:var(--teal);border-radius:999px}
+.scard{flex-direction:column;align-items:stretch;gap:12px}
+.sw{position:relative;height:56px;margin:8px 0 4px 0;border-radius:0 44px 12px 0;background:linear-gradient(135deg,#fbfbfb,#d3dadb);touch-action:none;user-select:none;-webkit-user-select:none}
+.swt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-left:56px;color:#121212;font-size:22px;font-weight:600;letter-spacing:.01em;pointer-events:none}
+.swk{position:absolute;left:0;top:-7px;width:76px;height:70px;border-radius:12px 64px 12px 64px;background:linear-gradient(135deg,#ec0c8c,#ff5e62);box-shadow:0 6px 16px rgba(236,12,140,.35);cursor:grab;touch-action:none;z-index:1}
+.swk.grab{cursor:grabbing;box-shadow:0 8px 22px rgba(236,12,140,.5)}
+.swk:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
 .who{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:12px;padding:14px;margin:6px 0 4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -298,13 +304,29 @@ async function loadStaff(){
   try{
     const list=await api("listStaff",cred);
     if(!$("#staffList"))return;
-    $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card"><div style="min-width:0"><div class="nm">${esc(s.u)}</div><div class="id">Password: ${esc(s.p)}</div></div><button class="btn danger sdel" data-u="${esc(s.u)}" style="padding:8px 14px">Remove</button></div>`).join(""):`<div class="empty" style="padding:14px">No staff added yet.</div>`;
-    document.querySelectorAll(".sdel").forEach(b=>b.onclick=async()=>{
-      if(!confirm("Remove staff "+b.dataset.u+"? They will not be able to log in."))return;
-      b.disabled=true;b.textContent="Removing…";
-      try{await api("deleteStaff",cred,b.dataset.u);toast("Removed");loadStaff();}catch(e){b.disabled=false;b.textContent="Remove";alert(e.message||"Could not remove.")}
-    });
+    $("#staffList").innerHTML=list.length?list.map(s=>`<div class="card scard"><div style="min-width:0"><div class="nm">${esc(s.u)}</div><div class="id">Password: ${esc(s.p)}</div></div>
+      <div class="sw" data-u="${esc(s.u)}" role="group" aria-label="Slide right to delete ${esc(s.u)}"><span class="swt">Delete</span><div class="swk" tabindex="0" role="button" aria-label="Delete ${esc(s.u)}"></div></div></div>`).join(""):`<div class="empty" style="padding:14px">No staff added yet.</div>`;
+    document.querySelectorAll(".sw").forEach(bindSlide);
   }catch(e){if($("#staffList"))$("#staffList").innerHTML=`<div class="empty" style="padding:14px">Could not load the staff list. ${esc(e.message||"")}</div>`;}
+}
+
+function bindSlide(sw){
+  const k=sw.querySelector(".swk"),txt=sw.querySelector(".swt"),u=sw.dataset.u;
+  let start=0,x=0,drag=false,busy=false;
+  const max=()=>sw.clientWidth-k.offsetWidth;
+  const put=v=>{x=Math.max(0,Math.min(v,max()));k.style.transform=`translateX(${x}px)`;txt.style.opacity=String(1-x/max()*0.9)};
+  const back=()=>{k.style.transition="transform .3s ease";txt.style.transition="opacity .3s ease";put(0);setTimeout(()=>{k.style.transition="";txt.style.transition=""},320)};
+  async function go(){
+    if(!confirm("Delete staff \""+u+"\"?\nThey will not be able to log in any more.")){back();return}
+    busy=true;txt.textContent="Deleting…";txt.style.opacity="1";
+    try{await api("deleteStaff",cred,u);toast("Deleted");loadStaff();}
+    catch(e){busy=false;txt.textContent="Delete";back();alert(e.message||"Could not delete. Check the internet and try again.")}
+  }
+  k.addEventListener("pointerdown",e=>{if(busy)return;drag=true;start=e.clientX-x;k.setPointerCapture(e.pointerId);k.classList.add("grab")});
+  k.addEventListener("pointermove",e=>{if(drag)put(e.clientX-start)});
+  const end=()=>{if(!drag)return;drag=false;k.classList.remove("grab");if(x>=max()*0.85){put(max());go()}else back()};
+  k.addEventListener("pointerup",end);k.addEventListener("pointercancel",end);
+  k.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&!busy){e.preventDefault();put(max());go()}});
 }
 function bindStaff(){
   $("#saddBtn").onclick=async()=>{
